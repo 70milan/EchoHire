@@ -1,49 +1,152 @@
 <!doctype html>
 <html>
-  <head><meta charset="utf-8"><title>Interview Assistant</title></head>
+  <head>
+    <meta charset="utf-8">
+    <title>Codevode</title>
+    <style>
+      body {
+        background-color: rgba(30, 30, 30, 0.95);
+        color: #ffffff;
+        font-family: "Segoe UI", Arial, sans-serif;
+        padding: 20px;
+        line-height: 1.5;
+      }
+
+      body.collapsed *:not(h3) {
+        display: none !important;
+      }
+
+      h3 {
+        text-align: center;
+        color: #00bfff;
+        margin-top: 0;
+        margin-bottom: 10px;
+      }
+
+      button {
+        display: block;
+        margin: 0 auto 10px auto;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      #recordBtn {
+        background-color: #00bfff;
+        color: white;
+      }
+      #recordBtn:hover {
+        background-color: #0099cc;
+      }
+
+      #generateBtn {
+        background-color: #ffaa00;
+        color: #000000;
+      }
+      #generateBtn:hover {
+        background-color: #ffcc33;
+      }
+
+      pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        text-align: justify;
+        font-size: 14px;
+        color: #e6e6e6;
+        background-color: rgba(255, 255, 255, 0.05);
+        padding: 10px;
+        border-radius: 8px;
+        max-height: 350px;
+        overflow-y: auto;
+      }
+
+      .ai-answer {
+        color: #7fffd4;
+        margin-top: 10px;
+        display: block;
+      }
+    </style>
+  </head>
+
   <body>
-    <h3>Interview Assistant</h3>
+    <h3>Codevode</h3>
     <button id="recordBtn">🎙️ Capture Audio</button>
+    <button id="generateBtn">💡 Generate Answer</button>
     <pre id="output"></pre>
- <script>
-const output = document.getElementById('output');
-const btn = document.getElementById('recordBtn');
-let recording = false;
 
-btn.onclick = async () => {
-  if (!recording) {
-    // --- Start recording ---
-    output.innerText = '🎙️ Recording...';
-    btn.innerText = '🛑 Stop';
-    recording = true;
-    await fetch('http://127.0.0.1:5050/start?mode=mic');
-  } else {
-    // --- Stop recording ---
-    output.innerText = '⏳ Transcribing...';
-    btn.innerText = '🎙️ Capture Audio';
-    recording = false;
+    <script>
+      const output = document.getElementById('output');
+      const recordBtn = document.getElementById('recordBtn');
+      const genBtn = document.getElementById('generateBtn');
+      let recording = false;
 
-    // 1️⃣ Get the transcript from backend
-    const stopResp = await fetch('http://127.0.0.1:5050/stop');
-    const stopData = await stopResp.json();
-    const transcript = stopData.transcript || '';
+      // 🎙️ Capture Audio toggle (also triggered by Ctrl+A)
+      recordBtn.onclick = async () => {
+        if (!recording) {
+          output.innerText = '🎙️ Recording...';
+          recordBtn.innerText = '🛑 Stop';
+          recording = true;
+          await fetch('http://127.0.0.1:5050/start?mode=mic');
+        } else {
+          output.innerText = '⏳ Transcribing...';
+          recordBtn.innerText = '🎙️ Capture Audio';
+          recording = false;
 
-    // 2️⃣ Show transcript
-    output.innerText = `🗣️ Transcript:\n${transcript}\n\n🤖 Generating AI reply...`;
+          const stopResp = await fetch('http://127.0.0.1:5050/stop');
+          const stopData = await stopResp.json();
+          const transcript = stopData.transcript || '';
 
-    // 3️⃣ Ask backend AI to generate an answer
-    const aiResp = await fetch('http://127.0.0.1:5050/ai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transcript, role: 'data engineer' })
-    });
-    const aiData = await aiResp.json();
+          output.innerText = `🗣️ Transcript:\n${transcript}`;
+        }
+      };
 
-    // 4️⃣ Show both transcript + AI answer
-    output.innerText =
-      `🗣️ Transcript:\n${transcript}\n\n💡 Suggested Answer:\n${aiData.answer}`;
-  }
-};
-</script>
+      // 💡 Generate AI Answer (also triggered by Ctrl+G)
+      genBtn.onclick = async () => {
+        const transcript = output.innerText.replace(/^🗣️ Transcript:\n?/i, '').trim();
+        if (!transcript) {
+          output.innerText += '\n\n(No transcript available to analyze.)';
+          return;
+        }
+
+        output.innerText += '\n\n🤖 Generating AI reply...';
+        const aiResp = await fetch('http://127.0.0.1:5050/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transcript, role: 'data engineer' })
+        });
+        const aiData = await aiResp.json();
+
+        output.innerText += `\n💡 Suggested Answer:\n${aiData.answer}`;
+      };
+
+      // Helper functions used by main.js for shortcuts
+      window.startRecordingOnly = async function() {
+        output.innerText = '🎙️ Recording...';
+        await fetch('http://127.0.0.1:5050/start?mode=mic');
+      };
+
+      window.stopRecordingOnly = async function() {
+        output.innerText = '⏳ Transcribing...';
+        const stopResp = await fetch('http://127.0.0.1:5050/stop');
+        const data = await stopResp.json();
+        output.innerText = `🗣️ Transcript:\n${data.transcript || ''}`;
+      };
+
+      window.generateAIOnly = async function() {
+        const transcript = output.innerText.replace(/^🗣️ Transcript:\n?/i, '').trim();
+        if (!transcript) return;
+        output.innerText += '\n\n🤖 Generating AI reply...';
+        const ai = await fetch('http://127.0.0.1:5050/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transcript, role: 'data engineer' }),
+        });
+        const r = await ai.json();
+        output.innerText += `\n💡 Suggested Answer:\n${r.answer}`;
+      };
+    </script>
   </body>
 </html>
