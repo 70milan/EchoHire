@@ -1,0 +1,5 @@
+ 
+"scripts": {
+  "start": "concurrently \"npm run electron\" \"cd ../backend && uvicorn main:app --port 5050\"",
+  "electron": "electron ."
+}

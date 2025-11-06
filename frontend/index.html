@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8"><title>Interview Assistant</title></head>
+  <body>
+    <h3>Interview Assistant</h3>
+    <button id="recordBtn">🎙️ Capture Audio</button>
+    <pre id="output"></pre>
+ <script>
+const output = document.getElementById('output');
+const btn = document.getElementById('recordBtn');
+let recording = false;
+
+btn.onclick = async () => {
+  if (!recording) {
+    // --- Start recording ---
+    output.innerText = '🎙️ Recording...';
+    btn.innerText = '🛑 Stop';
+    recording = true;
+    await fetch('http://127.0.0.1:5050/start?mode=mic');
+  } else {
+    // --- Stop recording ---
+    output.innerText = '⏳ Transcribing...';
+    btn.innerText = '🎙️ Capture Audio';
+    recording = false;
+
+    // 1️⃣ Get the transcript from backend
+    const stopResp = await fetch('http://127.0.0.1:5050/stop');
+    const stopData = await stopResp.json();
+    const transcript = stopData.transcript || '';
+
+    // 2️⃣ Show transcript
+    output.innerText = `🗣️ Transcript:\n${transcript}\n\n🤖 Generating AI reply...`;
+
+    // 3️⃣ Ask backend AI to generate an answer
+    const aiResp = await fetch('http://127.0.0.1:5050/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript, role: 'data engineer' })
+    });
+    const aiData = await aiResp.json();
+
+    // 4️⃣ Show both transcript + AI answer
+    output.innerText =
+      `🗣️ Transcript:\n${transcript}\n\n💡 Suggested Answer:\n${aiData.answer}`;
+  }
+};
+</script>
+  </body>
+</html>
