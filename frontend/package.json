@@ -1,5 +1,15 @@
- 
-"scripts": {
-  "start": "concurrently \"npm run electron\" \"cd ../backend && uvicorn main:app --port 5050\"",
-  "electron": "electron ."
+{
+  "name": "echohire-frontend",
+  "version": "1.0.0",
+  "description": "Electron-based UI for the EchoHire interview assistant.",
+  "main": "main.js",
+  "scripts": {
+    "start": "concurrently \"npm run electron\" \"cd ../backend && uvicorn main:app --port 5050\"",
+    "electron": "electron ."
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "electron": "^29.4.0"
+  }
 }
