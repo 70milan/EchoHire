@@ -1,152 +1,648 @@
 <!doctype html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>Codevode</title>
-    <style>
-      body {
-        background-color: rgba(30, 30, 30, 0.95);
-        color: #ffffff;
-        font-family: "Segoe UI", Arial, sans-serif;
-        padding: 20px;
-        line-height: 1.5;
+
+<head>
+  <meta charset="utf-8">
+  <title>Codevode</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <style>
+    body {
+      background-color: rgba(30, 30, 30, 0.95);
+      color: #ffffff;
+      font-family: "Segoe UI", Arial, sans-serif;
+      padding: 0;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    body.mini {
+      background-color: transparent;
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+    }
+
+    body.mini #main-container {
+      display: none;
+    }
+
+    body.mini #mini-icon {
+      display: flex;
+    }
+
+    #mini-icon {
+      display: none;
+      width: 50px;
+      height: 50px;
+      background-color: #00bfff;
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 0 10px #00bfff;
+      cursor: pointer;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(0, 191, 255, 0.7);
       }
 
-      body.collapsed *:not(h3) {
-        display: none !important;
+      70% {
+        box-shadow: 0 0 0 10px rgba(0, 191, 255, 0);
       }
 
-      h3 {
-        text-align: center;
-        color: #00bfff;
-        margin-top: 0;
-        margin-bottom: 10px;
+      100% {
+        box-shadow: 0 0 0 0 rgba(0, 191, 255, 0);
       }
+    }
 
-      button {
-        display: block;
-        margin: 0 auto 10px auto;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 8px;
-        font-size: 16px;
-        cursor: pointer;
-        transition: background-color 0.2s;
+    #main-container {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      padding: 15px;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    #controls {
+      flex: 1.75;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      flex: 1;
+      border: none;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+      background-color: #444;
+      color: #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    .btn:hover {
+      background-color: #555;
+    }
+
+    .btn.active {
+      background-color: #28a745;
+      color: white;
+      box-shadow: 0 0 8px rgba(40, 167, 69, 0.6);
+    }
+
+    #btn-generate {
+      background-color: #ffc107;
+      color: #000;
+    }
+
+    #btn-generate:hover {
+      background-color: #ffca2c;
+    }
+
+    .section {
+      flex: 5;
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 10px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      transition: flex 0.3s ease;
+    }
+
+    .section.compact {
+      flex: 2;
+    }
+
+    .section.expanded {
+      flex: 8;
+    }
+
+    .section.maximized {
+      flex: 20;
+    }
+
+    .section.minimized {
+      flex: 1;
+    }
+
+    .section-header {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: flex;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    #transcript-area {
+      color: #e6e6e6;
+      font-size: 14px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      user-select: text;
+      -webkit-user-select: text;
+      cursor: text;
+      flex: 1;
+      outline: none;
+      min-height: 50px;
+    }
+
+    #response-area {
+      color: #ffffff;
+      font-size: 14px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      text-align: left;
+      user-select: text;
+      -webkit-user-select: text;
+      cursor: text;
+      line-height: 1.4;
+      flex: 1;
+      min-height: 50px;
+      overflow-y: auto;
+      padding-bottom: 10px;
+    }
+
+    #response-area code {
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 13px;
+      color: #ffa07a;
+      display: inline;
+    }
+
+    #response-area pre {
+      background-color: #1e1e1e;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      margin: 8px 0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      white-space: pre;
+    }
+
+    #response-area pre code {
+      background-color: transparent;
+      padding: 0;
+      color: inherit;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.4;
+      display: block;
+    }
+
+    #status-bar {
+      flex: 0.6;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #aaa;
+      padding: 0 5px;
+      flex-shrink: 0;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #555;
+    }
+
+    .dot.connected {
+      background-color: #00ff00;
+      box-shadow: 0 0 5px #00ff00;
+    }
+
+    .dot.error {
+      background-color: #ff0000;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="mini-icon">🎙️</div>
+  <div id="main-container">
+    <div id="controls">
+      <button id="btn-system" class="btn">🖥️ System (Ctrl+R)</button>
+      <button id="btn-mic" class="btn">🎤 Mic (Ctrl+M)</button>
+      <button id="btn-screen" class="btn">📸 Screen (Ctrl+K)</button>
+      <button id="btn-generate" class="btn">💡 AI (Ctrl+G)</button>
+    </div>
+    <div class="section" id="transcript-section">
+      <div class="section-header">
+        <span>Live Transcript</span>
+        <span style="font-size: 10px; cursor: pointer;" onclick="window.clearTranscript()">[Clear]</span>
+      </div>
+      <div id="transcript-area" contenteditable="true"></div>
+    </div>
+    <div class="section" id="response-section">
+      <div class="section-header">
+        <span>AI Assistant</span>
+        <span style="font-size: 10px; cursor: pointer;"
+          onclick="navigator.clipboard.writeText(document.getElementById('response-area').innerText)">[Copy]</span>
+      </div>
+      <div id="response-area"></div>
+    </div>
+    <div id="status-bar">
+      <div class="status-indicator">
+        <div id="status-dot" class="dot"></div>
+        <span id="status-text">Ready</span>
+      </div>
+      <div id="mode-indicator">None</div>
+    </div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    const transcriptArea = document.getElementById('transcript-area');
+    const responseArea = document.getElementById('response-area');
+    const transcriptSection = document.getElementById('transcript-section');
+    const responseSection = document.getElementById('response-section');
+    const statusText = document.getElementById('status-text');
+    const statusDot = document.getElementById('status-dot');
+    const modeIndicator = document.getElementById('mode-indicator');
+    const btnSystem = document.getElementById('btn-system');
+    const btnMic = document.getElementById('btn-mic');
+    const btnScreen = document.getElementById('btn-screen');
+    const btnGenerate = document.getElementById('btn-generate');
+
+    let socket = null;
+    let audioContext = null;
+    let processor = null;
+    let source = null;
+    let currentStream = null;
+    let activeMode = null;
+    let capturedScreenshot = null;
+    const SAMPLE_RATE = 24000;
+
+    function floatTo16BitPCM(float32Array) {
+      const buffer = new ArrayBuffer(float32Array.length * 2);
+      const view = new DataView(buffer);
+      for (let i = 0; i < float32Array.length; i++) {
+        let s = Math.max(-1, Math.min(1, float32Array[i]));
+        s = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        view.setInt16(i * 2, s, true);
       }
+      return buffer;
+    }
 
-      #recordBtn {
-        background-color: #00bfff;
-        color: white;
+    function base64EncodeAudio(float32Array) {
+      const pcmBuffer = floatTo16BitPCM(float32Array);
+      let binary = '';
+      const bytes = new Uint8Array(pcmBuffer);
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
       }
-      #recordBtn:hover {
-        background-color: #0099cc;
-      }
+      return window.btoa(binary);
+    }
 
-      #generateBtn {
-        background-color: #ffaa00;
-        color: #000000;
-      }
-      #generateBtn:hover {
-        background-color: #ffcc33;
-      }
-
-      pre {
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        text-align: justify;
-        font-size: 14px;
-        color: #e6e6e6;
-        background-color: rgba(255, 255, 255, 0.05);
-        padding: 10px;
-        border-radius: 8px;
-        max-height: 350px;
-        overflow-y: auto;
-      }
-
-      .ai-answer {
-        color: #7fffd4;
-        margin-top: 10px;
-        display: block;
-      }
-    </style>
-  </head>
-
-  <body>
-    <h3>Codevode</h3>
-    <button id="recordBtn">🎙️ Capture Audio</button>
-    <button id="generateBtn">💡 Generate Answer</button>
-    <pre id="output"></pre>
-
-    <script>
-      const output = document.getElementById('output');
-      const recordBtn = document.getElementById('recordBtn');
-      const genBtn = document.getElementById('generateBtn');
-      let recording = false;
-
-      // 🎙️ Capture Audio toggle (also triggered by Ctrl+A)
-      recordBtn.onclick = async () => {
-        if (!recording) {
-          output.innerText = '🎙️ Recording...';
-          recordBtn.innerText = '🛑 Stop';
-          recording = true;
-          await fetch('http://127.0.0.1:5050/start?mode=mic');
-        } else {
-          output.innerText = '⏳ Transcribing...';
-          recordBtn.innerText = '🎙️ Capture Audio';
-          recording = false;
-
-          const stopResp = await fetch('http://127.0.0.1:5050/stop');
-          const stopData = await stopResp.json();
-          const transcript = stopData.transcript || '';
-
-          output.innerText = `🗣️ Transcript:\n${transcript}`;
+    async function getSystemAudioStream() {
+      try {
+        const sources = await ipcRenderer.invoke('GET_SOURCES', ['screen']);
+        console.log('Sources:', sources);
+        const source = sources.find(s => s.name === 'Entire Screen' || s.name === 'Screen 1') || sources[0];
+        if (!source) {
+          throw new Error('No screen source found. Available: ' + sources.map(s => s.name).join(', '));
         }
-      };
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: source.id } },
+          video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: source.id } }
+        });
+        return stream;
+      } catch (e) {
+        console.error('System Audio Error:', e);
+        responseArea.innerText = `System Audio Error:\n${e.name}: ${e.message}\n\n(Check permissions?)`;
+        statusText.innerText = 'Sys Audio Error';
+        return null;
+      }
+    }
 
-      // 💡 Generate AI Answer (also triggered by Ctrl+G)
-      genBtn.onclick = async () => {
-        const transcript = output.innerText.replace(/^🗣️ Transcript:\n?/i, '').trim();
-        if (!transcript) {
-          output.innerText += '\n\n(No transcript available to analyze.)';
+    async function getMicAudioStream() {
+      try {
+        return await navigator.mediaDevices.getUserMedia({
+          audio: { channelCount: 1, sampleRate: SAMPLE_RATE, echoCancellation: true, noiseSuppression: true }
+        });
+      } catch (e) {
+        console.error('Mic Error:', e);
+        responseArea.innerText = `Mic Error:\n${e.name}: ${e.message}`;
+        statusText.innerText = 'Mic Error';
+        return null;
+      }
+    }
+
+    async function startCapture(mode) {
+      if (activeMode === mode) {
+        stopCapture();
+        return;
+      }
+      if (activeMode) {
+        stopCapture();
+        await new Promise(r => setTimeout(r, 100));
+      }
+
+      try {
+        statusText.innerText = 'Connecting...';
+        let stream = null;
+        if (mode === 'system') {
+          stream = await getSystemAudioStream();
+        } else {
+          stream = await getMicAudioStream();
+        }
+        if (!stream) {
+          statusText.innerText = 'Stream Failed';
           return;
         }
+        currentStream = stream;
+        socket = new WebSocket('ws://127.0.0.1:5050/realtime');
 
-        output.innerText += '\n\n🤖 Generating AI reply...';
-        const aiResp = await fetch('http://127.0.0.1:5050/ai', {
+        socket.onopen = () => {
+          console.log('WebSocket Connected');
+          statusText.innerText = mode === 'system' ? 'Capturing System...' : 'Capturing Mic...';
+          statusDot.className = 'dot connected';
+          modeIndicator.innerText = mode === 'system' ? 'System' : 'Mic';
+          activeMode = mode;
+          updateButtons();
+
+          audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLE_RATE });
+          source = audioContext.createMediaStreamSource(currentStream);
+          processor = audioContext.createScriptProcessor(1024, 1, 1);
+
+          processor.onaudioprocess = (e) => {
+            if (!socket || socket.readyState !== WebSocket.OPEN) return;
+            const inputData = e.inputBuffer.getChannelData(0);
+
+            let sum = 0;
+            for (let i = 0; i < inputData.length; i++) {
+              sum += inputData[i] * inputData[i];
+            }
+            const rms = Math.sqrt(sum / inputData.length);
+            const volume = Math.min(100, Math.round(rms * 1000));
+
+            if (Math.random() < 0.05) {
+              statusText.innerText = `Vol: ${volume}`;
+            }
+
+            socket.send(base64EncodeAudio(inputData));
+          };
+
+          source.connect(processor);
+          processor.connect(audioContext.destination);
+        };
+
+        socket.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (data.type === 'transcript') {
+            transcriptArea.innerText += data.text;
+            transcriptArea.scrollTop = transcriptArea.scrollHeight;
+          }
+        };
+
+        socket.onerror = (err) => {
+          console.error('WebSocket Error:', err);
+          statusText.innerText = 'WS Error';
+          statusDot.className = 'dot error';
+          responseArea.innerText += '\n(WebSocket Error)';
+        };
+
+        socket.onclose = () => {
+          console.log('WebSocket Closed');
+          if (activeMode) stopCapture();
+        };
+
+      } catch (err) {
+        console.error('Start Error:', err);
+        statusText.innerText = 'Error';
+        responseArea.innerText = `Start Error:\n${err.message}`;
+        stopCapture();
+      }
+    }
+
+    function stopCapture() {
+      if (processor) { processor.disconnect(); processor = null; }
+      if (source) { source.disconnect(); source = null; }
+      if (currentStream) {
+        currentStream.getTracks().forEach(t => t.stop());
+        currentStream = null;
+      }
+      if (audioContext) { audioContext.close(); audioContext = null; }
+      if (socket) { socket.close(); socket = null; }
+      activeMode = null;
+      statusText.innerText = 'Ready';
+      statusDot.className = 'dot';
+      modeIndicator.innerText = 'None';
+      updateButtons();
+    }
+
+    function updateButtons() {
+      btnSystem.className = 'btn';
+      btnMic.className = 'btn';
+      if (activeMode === 'system') {
+        btnSystem.classList.add('active');
+      } else if (activeMode === 'mic') {
+        btnMic.classList.add('active');
+      }
+    }
+
+    btnSystem.onclick = () => startCapture('system');
+    btnMic.onclick = () => startCapture('mic');
+
+    btnScreen.onclick = async () => {
+      try {
+        statusText.innerText = 'Capturing screen...';
+        const sources = await ipcRenderer.invoke('GET_SOURCES', ['screen']);
+        const source = sources.find(s => s.name === 'Entire Screen' || s.name === 'Screen 1') || sources[0];
+
+        if (!source) {
+          throw new Error('No screen source found');
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            mandatory: {
+              chromeMediaSource: 'desktop',
+              chromeMediaSourceId: source.id,
+              maxWidth: 1920,
+              maxHeight: 1080
+            }
+          }
+        });
+
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.play();
+
+        await new Promise(resolve => {
+          video.onloadedmetadata = () => {
+            video.width = video.videoWidth;
+            video.height = video.videoHeight;
+            resolve();
+          };
+        });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+
+        capturedScreenshot = canvas.toDataURL('image/jpeg', 0.8);
+
+        stream.getTracks().forEach(track => track.stop());
+
+        btnScreen.style.backgroundColor = '#17a2b8';
+        statusText.innerText = 'Screen captured!';
+        setTimeout(() => {
+          statusText.innerText = 'Ready';
+        }, 2000);
+      } catch (e) {
+        console.error('Screen Capture Error:', e);
+        statusText.innerText = 'Screen capture failed';
+        responseArea.innerText = `Screen Capture Error:\n${e.message}`;
+      }
+    };
+
+    btnGenerate.onclick = async () => {
+      const transcript = transcriptArea.innerText.trim();
+      if (!transcript && !capturedScreenshot) {
+        responseArea.innerText = 'No transcript or screenshot to process.';
+        return;
+      }
+
+      responseArea.innerText = 'Generating...';
+      try {
+        const requestBody = {
+          transcript: transcript || 'Analyze this screenshot',
+          role: 'data engineer'
+        };
+
+        if (capturedScreenshot) {
+          requestBody.screenshot = capturedScreenshot;
+        }
+
+        const res = await fetch('http://127.0.0.1:5050/ai', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ transcript, role: 'data engineer' })
+          body: JSON.stringify(requestBody)
         });
-        const aiData = await aiResp.json();
 
-        output.innerText += `\n💡 Suggested Answer:\n${aiData.answer}`;
-      };
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
 
-      // Helper functions used by main.js for shortcuts
-      window.startRecordingOnly = async function() {
-        output.innerText = '🎙️ Recording...';
-        await fetch('http://127.0.0.1:5050/start?mode=mic');
-      };
+        const data = await res.json();
+        let formattedResponse = data.answer || 'No response from AI.';
 
-      window.stopRecordingOnly = async function() {
-        output.innerText = '⏳ Transcribing...';
-        const stopResp = await fetch('http://127.0.0.1:5050/stop');
-        const data = await stopResp.json();
-        output.innerText = `🗣️ Transcript:\n${data.transcript || ''}`;
-      };
+        const codeBlocks = [];
+        const inlineCodeBlocks = [];
 
-      window.generateAIOnly = async function() {
-        const transcript = output.innerText.replace(/^🗣️ Transcript:\n?/i, '').trim();
-        if (!transcript) return;
-        output.innerText += '\n\n🤖 Generating AI reply...';
-        const ai = await fetch('http://127.0.0.1:5050/ai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ transcript, role: 'data engineer' }),
+        formattedResponse = formattedResponse.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+          const language = lang || 'plaintext';
+          const escapedCode = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const placeholder = `___CODE_BLOCK_${codeBlocks.length}___`;
+          codeBlocks.push(`<pre><code class="language-${language}">${escapedCode}</code></pre>`);
+          return placeholder;
         });
-        const r = await ai.json();
-        output.innerText += `\n💡 Suggested Answer:\n${r.answer}`;
-      };
-    </script>
-  </body>
+
+        formattedResponse = formattedResponse.replace(/`([^`]+)`/g, (match, code) => {
+          const escapedCode = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const placeholder = `___INLINE_CODE_${inlineCodeBlocks.length}___`;
+          inlineCodeBlocks.push(`<code>${escapedCode}</code>`);
+          return placeholder;
+        });
+
+        formattedResponse = formattedResponse.replace(/\n/g, '<br>');
+
+        codeBlocks.forEach((block, i) => {
+          formattedResponse = formattedResponse.replace(`___CODE_BLOCK_${i}___`, block);
+        });
+
+        inlineCodeBlocks.forEach((code, i) => {
+          formattedResponse = formattedResponse.replace(`___INLINE_CODE_${i}___`, code);
+        });
+
+        responseArea.innerHTML = formattedResponse;
+
+        responseArea.querySelectorAll('pre code').forEach((block) => {
+          hljs.highlightElement(block);
+        });
+
+        transcriptSection.classList.add('compact');
+        responseSection.classList.add('expanded');
+        responseArea.scrollTop = 0;
+
+        if (capturedScreenshot) {
+          capturedScreenshot = null;
+          btnScreen.style.backgroundColor = '#444';
+        }
+      } catch (e) {
+        console.error('AI Generation Error:', e);
+        responseArea.innerText = `Error: ${e.message}\n\nCheck if backend is running on port 5050.`;
+      }
+    };
+
+    window.toggleSystemCapture = () => startCapture('system');
+    window.toggleMicCapture = () => startCapture('mic');
+    window.captureScreen = () => btnScreen.click();
+    window.generateAIOnly = () => btnGenerate.click();
+    window.clearTranscript = () => {
+      transcriptArea.innerText = '';
+      responseArea.innerText = '';
+      transcriptSection.classList.remove('compact');
+      responseSection.classList.remove('expanded');
+      transcriptSection.classList.remove('minimized');
+      responseSection.classList.remove('maximized');
+    };
+
+    window.maximizeResponse = () => {
+      if (responseSection.classList.contains('maximized')) {
+        transcriptSection.classList.remove('minimized');
+        responseSection.classList.remove('maximized');
+        if (responseSection.classList.contains('expanded')) {
+          transcriptSection.classList.add('compact');
+        }
+      } else {
+        transcriptSection.classList.remove('compact');
+        transcriptSection.classList.add('minimized');
+        responseSection.classList.add('maximized');
+      }
+    };
+
+    window.onload = () => {
+      console.log('Auto-starting System Audio...');
+      setTimeout(() => startCapture('system'), 1000);
+    };
+  </script>
+</body>
+
 </html>
