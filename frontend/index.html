@@ -6,6 +6,8 @@
   <title>Codevode</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <link rel="stylesheet" href="setup.css">
   <style>
     body {
       background-color: rgba(30, 30, 30, 0.95);
@@ -81,38 +83,33 @@
 
     .btn {
       flex: 1;
-      border: none;
+      border: 1px solid rgba(255, 255, 255, 0.15);
       padding: 10px;
-      border-radius: 6px;
-      font-size: 14px;
+      border-radius: 4px;
+      font-size: 13px;
       cursor: pointer;
-      font-weight: bold;
-      transition: all 0.2s;
-      background-color: #444;
-      color: #ccc;
+      font-weight: 500;
+      transition: all 0.15s;
+      background-color: rgba(255, 255, 255, 0.02);
+      color: #aaa;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 5px;
+      letter-spacing: 0.3px;
     }
 
     .btn:hover {
-      background-color: #555;
+      background-color: rgba(255, 255, 255, 0.04);
+      border-color: rgba(0, 212, 255, 0.2);
+      color: #ddd;
     }
 
     .btn.active {
-      background-color: #28a745;
-      color: white;
-      box-shadow: 0 0 8px rgba(40, 167, 69, 0.6);
-    }
-
-    #btn-generate {
-      background-color: #ffc107;
-      color: #000;
-    }
-
-    #btn-generate:hover {
-      background-color: #ffca2c;
+      background-color: rgba(0, 212, 255, 0.15);
+      color: #00d4ff;
+      border-color: rgba(0, 212, 255, 0.5);
+      box-shadow: 0 0 12px rgba(0, 212, 255, 0.3), inset 0 0 8px rgba(0, 212, 255, 0.1);
     }
 
     .section {
@@ -246,17 +243,116 @@
     .dot.error {
       background-color: #ff0000;
     }
+
+    /* Session buttons */
+    .session-btn-group {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .session-btn {
+      padding: 4px 8px;
+      font-size: 11px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background-color: rgba(255, 255, 255, 0.05);
+      color: #aaa;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .session-btn:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      color: #ddd;
+    }
+
+    .session-btn.active {
+      background-color: #28a745;
+      color: white;
+      border-color: #28a745;
+      box-shadow: 0 0 6px rgba(40, 167, 69, 0.5);
+    }
+
+    .session-btn.stopped {
+      background-color: #6c757d;
+      color: white;
+      border-color: #6c757d;
+      box-shadow: 0 0 6px rgba(108, 117, 125, 0.5);
+    }
+
+    .session-indicator {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #555;
+    }
+
+    .session-indicator.active {
+      background-color: #00ff00;
+      box-shadow: 0 0 4px #00ff00;
+      animation: blink 1s infinite;
+    }
+
+    .session-indicator.paused {
+      background-color: #ffaa00;
+      box-shadow: 0 0 4px #ffaa00;
+    }
+
+    @keyframes blink {
+      0%, 49%, 100% { opacity: 1; }
+      50%, 99% { opacity: 0.3; }
+    }
   </style>
 </head>
 
 <body>
+  <div id="setup-overlay" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%); align-items: center; justify-content: center; z-index: 9999; backdrop-filter: blur(5px);">
+    <div style="background: transparent; padding: 0; border-radius: 0; border: 1px solid rgba(0, 212, 255, 0.15); width: 340px; max-width: 90%;">
+      <div style="display: flex; flex-direction: column; gap: 8px; padding: 16px;">
+        <div>
+          <label style="display: block; color: #666; font-size: 9px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Resume</label>
+          <input type="file" id="setup-resume" accept=".docx" style="width: 100%; padding: 8px 0; border: none; border-bottom: 1px solid rgba(0, 212, 255, 0.3); background: transparent; color: #888; font-size: 10px; cursor: pointer; appearance: none; -webkit-appearance: none; -moz-appearance: none;" />
+        </div>
+        <div>
+          <label style="display: block; color: #666; font-size: 9px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Job Description</label>
+          <textarea id="setup-jobdesc" style="width: 100%; padding: 7px 8px; border: 1px solid rgba(0, 212, 255, 0.2); border-radius: 2px; background: rgba(255, 255, 255, 0.03); color: #aaa; font-family: 'Segoe UI', Arial; resize: vertical; height: 70px; font-size: 10px; outline: none;" placeholder="Paste job description..."></textarea>
+        </div>
+        <div id="setup-status" style="color: #666; font-size: 9px; min-height: 10px; height: 10px;"></div>
+        <button id="btn-start-session" style="padding: 7px 16px; background: rgba(0, 212, 255, 0.15); border: 1px solid rgba(0, 212, 255, 0.4); border-radius: 2px; color: #00d4ff; font-weight: 500; cursor: pointer; font-size: 10px; transition: all 0.2s; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 2px;">Create Session</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="session-error-popup" style="position: fixed; bottom: 20px; left: 20px; background: rgba(220, 50, 50, 0.15); border: 1px solid rgba(220, 50, 50, 0.4); border-radius: 3px; padding: 10px 14px; color: #ff6b6b; font-size: 10px; z-index: 10000; display: none; opacity: 0; transition: opacity 0.2s; pointer-events: none; max-width: 200px; font-weight: 500; letter-spacing: 0.3px; text-transform: uppercase;">You need to start the session first</div>
+
   <div id="mini-icon">🎙️</div>
   <div id="main-container">
     <div id="controls">
-      <button id="btn-system" class="btn">🖥️ System (Ctrl+R)</button>
-      <button id="btn-mic" class="btn">🎤 Mic (Ctrl+M)</button>
-      <button id="btn-screen" class="btn">📸 Screen (Ctrl+K)</button>
-      <button id="btn-generate" class="btn">💡 AI (Ctrl+G)</button>
+      <button id="btn-system" class="btn">System (Ctrl+R)</button>
+      <button id="btn-mic" class="btn">Mic (Ctrl+M)</button>
+      <button id="btn-screen" class="btn">Screen (Ctrl+K)</button>
+      <button id="btn-generate" class="btn">Process (Ctrl+G)</button>
+      <div id="session-timer" style="padding: 10px 15px; background: rgba(0, 191, 255, 0.1); border-radius: 6px; border: 1px solid rgba(0, 191, 255, 0.3); color: #00bfff; font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+        <span id="session-timer-dot" class="session-indicator"></span>
+        <span id="session-timer-text">2:00:00</span>
+      </div>
+      <div class="session-btn-group">
+        <button id="btn-session-start" class="session-btn" title="Start session timer">
+          <span class="session-indicator"></span>
+          <span>Start</span>
+        </button>
+        <button id="btn-session-stop" class="session-btn" title="Stop session timer">
+          <span class="session-indicator"></span>
+          <span>Stop</span>
+        </button>
+        <button id="btn-session-end" class="session-btn" title="End session and reset">
+          <span>End</span>
+        </button>
+      </div>
     </div>
     <div class="section" id="transcript-section">
       <div class="section-header">
@@ -278,7 +374,18 @@
         <div id="status-dot" class="dot"></div>
         <span id="status-text">Ready</span>
       </div>
-      <div id="mode-indicator">None</div>
+      <div style="display: flex; gap: 20px; align-items: center; font-size: 11px;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="color: #666;">VOL:</span>
+          <div style="width: 40px; height: 4px; background: rgba(255, 255, 255, 0.05); border-radius: 2px; position: relative; border: 1px solid rgba(255, 255, 255, 0.1);">
+            <div id="volume-bar" style="height: 100%; background: #00d4ff; border-radius: 2px; width: 0%; transition: width 0.1s;"></div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <div id="input-indicator-dot" class="dot"></div>
+          <span id="input-mode-text" style="color: #888;">--</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -290,7 +397,6 @@
     const responseSection = document.getElementById('response-section');
     const statusText = document.getElementById('status-text');
     const statusDot = document.getElementById('status-dot');
-    const modeIndicator = document.getElementById('mode-indicator');
     const btnSystem = document.getElementById('btn-system');
     const btnMic = document.getElementById('btn-mic');
     const btnScreen = document.getElementById('btn-screen');
@@ -389,7 +495,6 @@
           console.log('WebSocket Connected');
           statusText.innerText = mode === 'system' ? 'Capturing System...' : 'Capturing Mic...';
           statusDot.className = 'dot connected';
-          modeIndicator.innerText = mode === 'system' ? 'System' : 'Mic';
           activeMode = mode;
           updateButtons();
 
@@ -408,8 +513,25 @@
             const rms = Math.sqrt(sum / inputData.length);
             const volume = Math.min(100, Math.round(rms * 1000));
 
-            if (Math.random() < 0.05) {
-              statusText.innerText = `Vol: ${volume}`;
+            // Update volume bar and input mode indicator
+            const volumeBar = document.getElementById('volume-bar');
+            const inputModeDot = document.getElementById('input-indicator-dot');
+            const inputModeText = document.getElementById('input-mode-text');
+            
+            if (volumeBar) {
+              volumeBar.style.width = (volume / 100) * 100 + '%';
+            }
+            
+            if (inputModeDot) {
+              if (activeMode === 'system') {
+                inputModeDot.className = 'dot connected';
+                inputModeText.innerText = 'System';
+                inputModeText.style.color = '#00d4ff';
+              } else if (activeMode === 'mic') {
+                inputModeDot.className = 'dot connected';
+                inputModeText.innerText = 'Mic';
+                inputModeText.style.color = '#00d4ff';
+              }
             }
 
             socket.send(base64EncodeAudio(inputData));
@@ -459,7 +581,15 @@
       activeMode = null;
       statusText.innerText = 'Ready';
       statusDot.className = 'dot';
-      modeIndicator.innerText = 'None';
+      
+      // Reset input mode indicator
+      const inputModeDot = document.getElementById('input-indicator-dot');
+      const inputModeText = document.getElementById('input-mode-text');
+      const volumeBar = document.getElementById('volume-bar');
+      if (inputModeDot) inputModeDot.className = 'dot';
+      if (inputModeText) { inputModeText.innerText = '--'; inputModeText.style.color = '#888'; }
+      if (volumeBar) volumeBar.style.width = '0%';
+      
       updateButtons();
     }
 
@@ -473,10 +603,28 @@
       }
     }
 
-    btnSystem.onclick = () => startCapture('system');
-    btnMic.onclick = () => startCapture('mic');
+    btnSystem.onclick = () => {
+      if (!window.isSessionActive) {
+        window.showSessionError();
+        return;
+      }
+      startCapture('system');
+    };
+    
+    btnMic.onclick = () => {
+      if (!window.isSessionActive) {
+        window.showSessionError();
+        return;
+      }
+      startCapture('mic');
+    };
 
     btnScreen.onclick = async () => {
+      if (!window.isSessionActive) {
+        window.showSessionError();
+        return;
+      }
+      
       try {
         statusText.innerText = 'Capturing screen...';
         const sources = await ipcRenderer.invoke('GET_SOURCES', ['screen']);
@@ -533,12 +681,18 @@
     };
 
     btnGenerate.onclick = async () => {
+      if (!window.isSessionActive) {
+        window.showSessionError();
+        return;
+      }
+      
       const transcript = transcriptArea.innerText.trim();
       if (!transcript && !capturedScreenshot) {
         responseArea.innerText = 'No transcript or screenshot to process.';
         return;
       }
 
+      btnGenerate.classList.add('active');
       responseArea.innerText = 'Generating...';
       try {
         const requestBody = {
@@ -605,9 +759,12 @@
           capturedScreenshot = null;
           btnScreen.style.backgroundColor = '#444';
         }
+        
+        btnGenerate.classList.remove('active');
       } catch (e) {
         console.error('AI Generation Error:', e);
         responseArea.innerText = `Error: ${e.message}\n\nCheck if backend is running on port 5050.`;
+        btnGenerate.classList.remove('active');
       }
     };
 
@@ -643,6 +800,7 @@
       setTimeout(() => startCapture('system'), 1000);
     };
   </script>
+  <script src="setup.js"></script>
 </body>
 
 </html>
