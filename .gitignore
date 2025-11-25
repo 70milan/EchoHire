@@ -55,4 +55,7 @@ logs/
 *.app
 *.dmg
 *.pkg
+
+# User data - contains sensitive resume/profile information
 backend/resumes/
+backend/user_profile.json
