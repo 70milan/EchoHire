@@ -55,3 +55,4 @@ logs/
 *.app
 *.dmg
 *.pkg
+backend/resumes/

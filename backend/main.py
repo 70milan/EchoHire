@@ -350,5 +350,10 @@ async def generate_ai_response(req: AIRequest):
         return {"answer": f"Error: {str(e)}"}
 
 
-
-
+if __name__ == "__main__":
+    import uvicorn
+    print("\n" + "="*60)
+    print("Starting Interview Assistant Backend")
+    print("API running on: http://localhost:5050")
+    print("="*60 + "\n")
+    uvicorn.run(app, host="0.0.0.0", port=5050, log_level="info")
