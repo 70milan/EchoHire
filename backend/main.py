@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import FastAPI, WebSocket
+from fastapi.responses import StreamingResponse
 from openai import OpenAI
 import os
 
@@ -224,6 +225,127 @@ async def upload_resume(file: UploadFile = File(...)):
 
 # ----------------------------------------------------------------------------
 
+@app.post("/ai/stream")
+async def stream_ai_response(req: AIRequest):
+    """Streaming endpoint for real-time AI responses using Server-Sent Events"""
+    
+    async def generate_stream():
+        try:
+            client = OpenAI(api_key=OPENAI_API_KEY)
+            
+            # CRITICAL: Reload profile from disk to get latest resume
+            current_profile = load_profile()
+            
+            # Extract resume and job description
+            resume_text = None
+            job_description = None
+            profile_metadata = None
+            
+            if current_profile and isinstance(current_profile, dict):
+                resume_text = current_profile.get('resume_text')
+                job_description = current_profile.get('job_description')
+                # Build metadata without resume_text
+                profile_metadata = {k: v for k, v in current_profile.items() if k not in ['resume_text', 'job_description']}
+            
+            has_resume = bool(resume_text and resume_text.strip())
+            
+            # DEBUG: Print what we're sending
+            print(f"\n{'='*60}")
+            print(f"[STREAMING AI REQUEST]")
+            print(f"Has resume: {has_resume}")
+            if has_resume:
+                print(f"Resume length: {len(resume_text)} characters")
+            if job_description:
+                print(f"Job description length: {len(job_description)} characters")
+            print(f"{'='*60}\n")
+
+            if req.screenshot:
+                # Use vision model for screenshot analysis
+                messages = [
+                    {
+                        "role": "system",
+                        "content": (
+                            f"You are a {req.role}. When you see a coding problem in the screenshot, provide the SOLUTION CODE with a brief explanation. "
+                            "Do not just describe what you see - solve it! be to the point:8-9 sentences on an average. "
+                            "You have been provided a Candidate resume. Answer ALL questions based on the resume content provided. Extract and use information from the resume to answer in first person as if you are the candidate."
+                            "If you are asked to write code, write the code in the same language as the job description (mostly sql, pyspark, pandas, pyton, pyspark sql)."
+                            "Answer in simple english as if english is not your first language and you are an immigrant in the US for past 10 years."
+                        )
+                    }
+                ]
+
+                # Inject resume
+                if has_resume:
+                    messages.append({"role": "user", "content": "Candidate resume:\n" + resume_text})
+                elif profile_metadata:
+                    messages.append({"role": "user", "content": "Candidate profile:\n" + json.dumps(profile_metadata, indent=2)})
+
+                # Include job description
+                if job_description:
+                    messages.append({"role": "user", "content": f"Job description:\n{job_description}"})
+
+                messages.append({
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": req.transcript},
+                        {"type": "image_url", "image_url": {"url": req.screenshot}}
+                    ]
+                })
+                model = "gpt-4o"
+                print(f"[STREAM] Using model: {model} (vision)")
+            else:
+                # Use text-only model - GPT-3.5-turbo for speed!
+                system_content = (
+                    f"You are an experienced {req.role} answering an interview question. Respond in FIRST PERSON as if YOU are the candidate. "
+                    "Be sharp, concise, and specific. Include specific tools/commands but keep it brief (4-6 sentences max). "
+                    "Sound confident and experienced, not verbose. "
+                    "You have been provided a Candidate resume. Answer ALL questions based on the resume content provided. Extract and use information from the resume to answer interview questions."
+                )
+
+                messages = [
+                    {"role": "system", "content": system_content}
+                ]
+
+                # Inject resume
+                if has_resume:
+                    messages.append({"role": "user", "content": "Candidate resume:\n" + resume_text})
+                elif profile_metadata:
+                    messages.append({"role": "user", "content": "Candidate profile:\n" + json.dumps(profile_metadata, indent=2)})
+
+                # Include job description
+                if job_description:
+                    messages.append({"role": "user", "content": f"Job description:\n{job_description}"})
+
+                messages.append({"role": "user", "content": req.transcript})
+                model = "gpt-3.5-turbo"  # Fast model for text-only
+                print(f"[STREAM] Using model: {model} (text-only)")
+
+            # Stream the response
+            completion = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                stream=True,
+                max_tokens=600,
+                temperature=0.7
+            )
+            
+            # Yield chunks as they arrive
+            for chunk in completion:
+                if chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
+                    # Send as Server-Sent Event format
+                    yield f"data: {json.dumps({'chunk': content})}\n\n"
+            
+            # Send completion signal
+            yield f"data: {json.dumps({'done': True})}\n\n"
+            
+        except Exception as e:
+            print(f"Streaming AI Error: {e}")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+    
+    return StreamingResponse(generate_stream(), media_type="text/event-stream")
+
+
 @app.post("/ai")
 async def generate_ai_response(req: AIRequest):
     try:
@@ -291,7 +413,7 @@ async def generate_ai_response(req: AIRequest):
             })
             model = "gpt-4o"
         else:
-            # Use text-only model
+            # Use text-only model - GPT-3.5-turbo for speed!
             system_content = (
                 f"You are an experienced {req.role} answering an interview question. Respond in FIRST PERSON as if YOU are the candidate. "
                 "Be sharp, concise, and specific. Include specific tools/commands but keep it brief (4-6 sentences max). "
@@ -314,7 +436,7 @@ async def generate_ai_response(req: AIRequest):
                 messages.append({"role": "user", "content": f"Job description:\n{req.job_description}"})
 
             messages.append({"role": "user", "content": req.transcript})
-            model = "gpt-4o"
+            model = "gpt-3.5-turbo"  # Fast model for text-only
         
         # DEBUG: print messages being sent to OpenAI to help diagnose which context is used
         try:
